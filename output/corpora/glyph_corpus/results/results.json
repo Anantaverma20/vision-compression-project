@@ -1,0 +1,130 @@
+[
+  {
+    "mode": "text_rag",
+    "question_id": "q1",
+    "question": "What is the main topic of the document?",
+    "answer": "Not found in provided documents.",
+    "retrieved": [],
+    "metrics": {
+      "has_citations": false,
+      "citation_coverage": 0.0,
+      "citation_count": 0,
+      "retrieved_pages_count": 0,
+      "estimated_context_units": 0,
+      "latency_seconds": 2.171294927597046
+    },
+    "judge": {
+      "score": 0.0,
+      "rationale": "The answer states the information is not found, but provides no evidence (documents) to support this claim. Without the source documents, it is impossible to verify whether the information was truly absent or if the system failed to retrieve it. Therefore, the answer is not grounded.",
+      "citation_correctness": 0.0,
+      "coverage": 0.0
+    },
+    "latency": 2.171294927597046,
+    "success": true
+  },
+  {
+    "mode": "text_rag",
+    "question_id": "q2",
+    "question": "What are the key findings or conclusions?",
+    "answer": "Not found in provided documents.",
+    "retrieved": [],
+    "metrics": {
+      "has_citations": false,
+      "citation_coverage": 0.0,
+      "citation_count": 0,
+      "retrieved_pages_count": 0,
+      "estimated_context_units": 0,
+      "latency_seconds": 1.1285066604614258
+    },
+    "judge": {
+      "score": 1.0,
+      "rationale": "The user did not provide any documents for context. Therefore, the generated answer \"Not found in provided documents\" is the only correct and possible response. It accurately reflects the lack of information.",
+      "citation_correctness": 1.0,
+      "coverage": 1.0
+    },
+    "latency": 1.1285066604614258,
+    "success": true
+  },
+  {
+    "mode": "text_rag",
+    "question_id": "q3",
+    "question": "What methodology was used?",
+    "answer": "The methodology used is a paradigm called Glyph, which scales long-context text understanding through visual compression (doc_id p.3). Instead of extending token-based context windows like conventional LLMs, Glyph transforms ultra-long text inputs into compact visual images and processes them with a vision-language model (VLM) (doc_id p.3).\n\nThe Glyph methodology consists of three main stages (doc_id p.2):\n\n1.  **Continual Pre-training**: In this stage, large-scale long-context text is rendered into diverse visual forms (doc_id p.2). This enables the VLM to transfer its long-context capability from text tokens to visual tokens (doc_id p.2).\n2.  **LLM-driven Rendering Search**: An LLM-driven genetic search is used to automatically explore rendering parameters such as font size, layout, and resolution (doc_id p.2). The goal is to find the optimal configuration that maximizes compression while preserving the model's long-context ability (doc_id p.2).\n3.  **Post-training**: The configuration from the rendering search is applied in this stage (doc_id p.2). The model undergoes supervised fine-tuning and reinforcement learning to further improve its performance on the visualized input (doc_id p.2). An auxiliary Optical Character Recognition (OCR) task is also applied to enhance the model (doc_id p.2).",
+    "retrieved": [
+      {
+        "doc_id": "glyph paper_20251222_192046",
+        "page": 2,
+        "memory_id": "",
+        "excerpt": "Result(chunks=[ResultChunk(content='For example, consider the novel “Jane Eyre” (≈240K text tokens). A conventional 128K–context LLM cannot accommodate the entire book, and truncation easily leads to wrong answers for questions requiring global cover"
+      },
+      {
+        "doc_id": "glyph paper_20251222_192046",
+        "page": 3,
+        "memory_id": "",
+        "excerpt": "Result(chunks=[ResultChunk(content='In contrast, our method compresses text into visual tokens, which can be combined with existing techniques to reduce cost and extend context length.\\\\n\\\\n## 2.2 Multimodal Large Language Model\\\\n\\\\nMultimodal large"
+      }
+    ],
+    "metrics": {
+      "has_citations": true,
+      "citation_coverage": 0.0,
+      "citation_count": 10,
+      "retrieved_pages_count": 2,
+      "estimated_context_units": 3081,
+      "latency_seconds": 11.675902128219604
+    },
+    "judge": {
+      "score": 0.5,
+      "rationale": "Judge response blocked by safety filter",
+      "citation_correctness": 0.5,
+      "coverage": 0.5
+    },
+    "latency": 11.675902128219604,
+    "success": true
+  },
+  {
+    "mode": "text_rag",
+    "question_id": "q4",
+    "question": "What are the main contributions?",
+    "answer": "Not found in provided documents.",
+    "retrieved": [],
+    "metrics": {
+      "has_citations": false,
+      "citation_coverage": 0.0,
+      "citation_count": 0,
+      "retrieved_pages_count": 0,
+      "estimated_context_units": 0,
+      "latency_seconds": 1.4969274997711182
+    },
+    "judge": {
+      "score": 0.5,
+      "rationale": "Judge response blocked by safety filter",
+      "citation_correctness": 0.5,
+      "coverage": 0.5
+    },
+    "latency": 1.4969274997711182,
+    "success": true
+  },
+  {
+    "mode": "text_rag",
+    "question_id": "q5",
+    "question": "What datasets or experiments are mentioned?",
+    "answer": "Not found in provided documents.",
+    "retrieved": [],
+    "metrics": {
+      "has_citations": false,
+      "citation_coverage": 0.0,
+      "citation_count": 0,
+      "retrieved_pages_count": 0,
+      "estimated_context_units": 0,
+      "latency_seconds": 1.4273791313171387
+    },
+    "judge": {
+      "score": 1.0,
+      "rationale": "The answer correctly states that the requested information is not found in the provided documents. This is a valid and helpful response when the source material does not contain the answer. Assuming the system's assessment of the documents is correct, this is a perfect answer.",
+      "citation_correctness": 1.0,
+      "coverage": 1.0
+    },
+    "latency": 1.4273791313171387,
+    "success": true
+  }
+]

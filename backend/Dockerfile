@@ -18,8 +18,11 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application code (this layer changes most often)
 COPY app/ ./app/
 
-# Create tmp directory for runtime file storage
-RUN mkdir -p tmp
+# Copy eval module (needed for evaluation functionality)
+COPY eval/ ./eval/
+
+# Create tmp and output directories for runtime file storage
+RUN mkdir -p tmp output/corpora
 
 # Expose port
 EXPOSE 8080

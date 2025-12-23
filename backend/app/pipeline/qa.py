@@ -1,13 +1,11 @@
 """Question answering module - retrieves from Supermemory and generates answers with Gemini."""
 
 import json
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 
-import google.generativeai as genai
-
 from app.config import (
-    GEMINI_API_KEY,
     GEMINI_MODEL,
     GEMINI_TEMPERATURE,
     GEMINI_MAX_OUTPUT_TOKENS_ANSWERING,
@@ -16,6 +14,9 @@ from app.config import (
     SUPERMEMORY_WORKSPACE_ID,
 )
 from app.pipeline.utils import retry
+from app.llm.vertex_gemini import VertexGeminiClient
+
+logger = logging.getLogger(__name__)
 
 
 def _get_supermemory_client():
@@ -34,36 +35,65 @@ def _get_supermemory_client():
     return Supermemory(**client_kwargs)
 
 
-def _query_supermemory(client, query: str, doc_id: str, top_k: int) -> List:
+def _query_supermemory(client, query: str, doc_id: Optional[str] = None, corpus_id: Optional[str] = None, top_k: int = 8) -> List:
     """
-    Query Supermemory for relevant memories filtered by doc_id.
+    Query Supermemory for relevant memories filtered by doc_id or corpus_id.
+    
+    Args:
+        client: Supermemory client
+        query: Search query
+        doc_id: Optional document ID to filter by
+        corpus_id: Optional corpus ID to filter by (searches across all docs in corpus)
+        top_k: Number of results to return
     
     Returns:
         list: List of result objects with memory_id, content, and metadata
     """
+    # Build filter based on what's provided
+    filter_dict = {}
+    if doc_id:
+        filter_dict['doc_id'] = doc_id
+    elif corpus_id:
+        filter_dict['corpus_id'] = corpus_id
+    
     def _call():
+        # For corpus queries, request more results to ensure we get enough after filtering
+        request_limit = top_k * 3 if corpus_id else top_k
+        
         # Try common SDK search patterns
         if hasattr(client, 'search') and hasattr(client.search, 'query'):
             try:
-                response = client.search.query(q=query, limit=top_k, filter={'doc_id': doc_id})
+                if filter_dict:
+                    response = client.search.query(q=query, limit=request_limit, filter=filter_dict)
+                else:
+                    response = client.search.query(q=query, limit=request_limit)
             except (TypeError, AttributeError):
                 # Fallback: query without filter, filter results after
-                response = client.search.query(q=query, limit=top_k * 2)
+                response = client.search.query(q=query, limit=request_limit)
         elif hasattr(client, 'search') and hasattr(client.search, 'documents'):
             try:
-                response = client.search.documents(q=query, limit=top_k, filter={'doc_id': doc_id})
+                if filter_dict:
+                    response = client.search.documents(q=query, limit=request_limit, filter=filter_dict)
+                else:
+                    response = client.search.documents(q=query, limit=request_limit)
             except (TypeError, AttributeError):
-                response = client.search.documents(q=query, limit=top_k * 2)
+                response = client.search.documents(q=query, limit=request_limit)
         elif hasattr(client, 'query'):
             try:
-                response = client.query(query=query, limit=top_k, filter={'doc_id': doc_id})
+                if filter_dict:
+                    response = client.query(query=query, limit=request_limit, filter=filter_dict)
+                else:
+                    response = client.query(query=query, limit=request_limit)
             except (TypeError, AttributeError):
-                response = client.query(query=query, limit=top_k * 2)
+                response = client.query(query=query, limit=request_limit)
         elif hasattr(client, 'search'):
             try:
-                response = client.search(query, limit=top_k, filter={'doc_id': doc_id})
+                if filter_dict:
+                    response = client.search(query, limit=request_limit, filter=filter_dict)
+                else:
+                    response = client.search(query, limit=request_limit)
             except (TypeError, AttributeError):
-                response = client.search(query, limit=top_k * 2)
+                response = client.search(query, limit=request_limit)
         else:
             raise AttributeError("Could not find search method in Supermemory client")
         
@@ -77,24 +107,43 @@ def _query_supermemory(client, query: str, doc_id: str, top_k: int) -> List:
         else:
             results = [response]
         
-        # Filter by doc_id if not done by SDK
-        filtered_results = []
-        for result in results:
-            # Extract metadata
-            if hasattr(result, 'metadata'):
-                metadata = result.metadata
-            elif isinstance(result, dict):
-                metadata = result.get('metadata', {})
-            else:
-                metadata = {}
+        # Filter by doc_id or corpus_id if not done by SDK
+        if filter_dict:
+            filtered_results = []
+            for result in results:
+                # Extract metadata
+                if hasattr(result, 'metadata'):
+                    metadata = result.metadata
+                elif isinstance(result, dict):
+                    metadata = result.get('metadata', {})
+                else:
+                    metadata = {}
+                
+                # Check if filter matches - be more lenient with corpus_id matching
+                match = True
+                if doc_id:
+                    result_doc_id = metadata.get('doc_id')
+                    if result_doc_id != doc_id:
+                        match = False
+                elif corpus_id:
+                    result_corpus_id = metadata.get('corpus_id')
+                    # Match if corpus_id matches or if no corpus_id filter was applied by SDK
+                    if result_corpus_id and result_corpus_id != corpus_id:
+                        match = False
+                    # If no corpus_id in metadata but we're filtering by corpus_id, 
+                    # include it anyway (might be from same corpus but metadata missing)
+                    # This helps with documents that were ingested but metadata wasn't set correctly
+                
+                if match:
+                    filtered_results.append(result)
+                    if len(filtered_results) >= top_k:
+                        break
             
-            # Check if doc_id matches
-            if metadata.get('doc_id') == doc_id:
-                filtered_results.append(result)
-                if len(filtered_results) >= top_k:
-                    break
+            # If we got fewer results than requested and filtering by corpus_id, 
+            # return what we have (already tried broader search above)
+            return filtered_results[:top_k] if filtered_results else results[:top_k]
         
-        return filtered_results[:top_k]
+        return results[:top_k]
     
     return retry(_call, attempts=3)
 
@@ -204,22 +253,20 @@ Evidence Pack:
 Answer (with citations):"""
     
     def _call():
-        model = genai.GenerativeModel(model_name)
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=GEMINI_TEMPERATURE,
-                max_output_tokens=GEMINI_MAX_OUTPUT_TOKENS_ANSWERING
-            )
+        client = VertexGeminiClient(model_name=model_name)
+        return client.generate_content(
+            contents=prompt,
+            temperature=GEMINI_TEMPERATURE,
+            max_output_tokens=GEMINI_MAX_OUTPUT_TOKENS_ANSWERING,
         )
-        return response.text.strip()
     
     return retry(_call, attempts=3)
 
 
 def answer_question(
-    doc_id: str,
-    question: str,
+    doc_id: Optional[str] = None,
+    corpus_id: Optional[str] = None,
+    question: str = "",
     top_k: int = 8,
     max_chars_per_page: int = 1500,
     model: str = None,
@@ -229,7 +276,8 @@ def answer_question(
     Answer a question using Supermemory retrieval and Gemini generation.
     
     Args:
-        doc_id: Document ID
+        doc_id: Optional document ID (for single document queries)
+        corpus_id: Optional corpus ID (for multi-document queries)
         question: User question
         top_k: Number of top results to retrieve
         max_chars_per_page: Maximum characters per page in evidence pack
@@ -239,15 +287,18 @@ def answer_question(
     Returns:
         dict: {"answer_md": str, "retrieved": List[Dict]}
     """
+    # Validate that either doc_id or corpus_id is provided
+    if not doc_id and not corpus_id:
+        raise ValueError("Either doc_id or corpus_id must be provided")
+    
     # Use default model if not specified
     if model is None:
         model = GEMINI_MODEL
     
-    # Configure Gemini
-    if not GEMINI_API_KEY:
-        raise ValueError("GEMINI_API_KEY not found in environment variables")
-    
-    genai.configure(api_key=GEMINI_API_KEY)
+    # Validate Vertex AI configuration
+    from app.config import GCP_PROJECT_ID
+    if not GCP_PROJECT_ID:
+        raise ValueError("GCP_PROJECT_ID not found in environment variables")
     
     # Load manifest if provided
     manifest = None
@@ -260,16 +311,35 @@ def answer_question(
     
     # Query Supermemory
     client = _get_supermemory_client()
-    results = _query_supermemory(client, question, doc_id, top_k)
+    results = _query_supermemory(client, question, doc_id=doc_id, corpus_id=corpus_id, top_k=top_k)
+    
+    # Log query results for debugging
+    logger.info(f"Query returned {len(results) if results else 0} results for {'corpus_id=' + corpus_id if corpus_id else 'doc_id=' + doc_id}")
+    if results:
+        logger.debug(f"First result metadata: {results[0].metadata if hasattr(results[0], 'metadata') else (results[0].get('metadata') if isinstance(results[0], dict) else 'N/A')}")
     
     if not results:
+        logger.warning(f"No results found for query: '{question}' with {'corpus_id=' + corpus_id if corpus_id else 'doc_id=' + doc_id}")
         return {
             "answer_md": "Not found in provided pages.",
             "retrieved": []
         }
     
-    # Build evidence pack
-    evidence_pack = _build_evidence_pack(results, manifest, doc_id, max_chars_per_page)
+    # For corpus queries, extract doc_id from results if available, otherwise use corpus_id
+    citation_id = doc_id
+    if not citation_id and corpus_id:
+        # Try to get doc_id from first result's metadata
+        if results:
+            first_result = results[0]
+            if hasattr(first_result, 'metadata'):
+                citation_id = first_result.metadata.get('doc_id', corpus_id)
+            elif isinstance(first_result, dict):
+                citation_id = first_result.get('metadata', {}).get('doc_id', corpus_id)
+        if not citation_id:
+            citation_id = corpus_id  # Fallback to corpus_id
+    
+    # Build evidence pack - use citation_id for proper citations
+    evidence_pack = _build_evidence_pack(results, manifest, citation_id, max_chars_per_page)
     
     if not evidence_pack:
         return {
@@ -277,20 +347,61 @@ def answer_question(
             "retrieved": []
         }
     
-    # Generate answer with Gemini
-    answer_md = _generate_answer_with_gemini(question, evidence_pack, doc_id, model)
+    # Generate answer with Gemini - use citation_id for citations
+    answer_md = _generate_answer_with_gemini(question, evidence_pack, citation_id, model)
     
-    # Build retrieved list
+    # Build retrieved list with full content
     retrieved = []
     for result in results:
         info = _extract_result_info(result, manifest)
         if info:
             memory_id, page_number, content = info
             excerpt = content[:250] if len(content) > 250 else content
+            
+            # Try to get full content from page JSON file if available
+            full_content = None
+            if doc_id:
+                # Try to find page JSON file
+                doc_dir = None
+                if corpus_id:
+                    # For corpus, try to find doc_id from manifest or search in corpus structure
+                    corpus_dir = Path("output") / "corpora" / corpus_id / "docs"
+                    if corpus_dir.exists():
+                        # Search for doc_id in corpus
+                        for potential_doc_dir in corpus_dir.iterdir():
+                            if potential_doc_dir.is_dir():
+                                pages_dir = potential_doc_dir / "pages"
+                                page_json_path = pages_dir / f"page_{page_number:03d}.json"
+                                if page_json_path.exists():
+                                    try:
+                                        with open(page_json_path, 'r', encoding='utf-8') as f:
+                                            page_data = json.load(f)
+                                            full_content = page_data.get('markdown', content)
+                                    except Exception:
+                                        pass
+                                    break
+                else:
+                    # Single doc - try tmp directory
+                    doc_dir = Path("tmp") / doc_id
+                    pages_dir = doc_dir / "pages"
+                    page_json_path = pages_dir / f"page_{page_number:03d}.json"
+                    if page_json_path.exists():
+                        try:
+                            with open(page_json_path, 'r', encoding='utf-8') as f:
+                                page_data = json.load(f)
+                                full_content = page_data.get('markdown', content)
+                        except Exception:
+                            pass
+            
+            # Fallback to content if full_content not found
+            if full_content is None:
+                full_content = content
+            
             retrieved.append({
                 "page": page_number,
                 "memory_id": memory_id,
-                "excerpt": excerpt
+                "excerpt": excerpt,
+                "full_content": full_content
             })
     
     return {

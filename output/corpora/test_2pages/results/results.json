@@ -1,0 +1,117 @@
+[
+  {
+    "mode": "text_rag",
+    "question_id": "q1",
+    "question": "What is the main topic of the document?",
+    "answer": "Not found in provided documents.",
+    "retrieved": [],
+    "metrics": {
+      "has_citations": false,
+      "citation_coverage": 0.0,
+      "citation_count": 0,
+      "retrieved_pages_count": 0,
+      "estimated_context_units": 0,
+      "latency_seconds": 1.4950237274169922
+    },
+    "judge": {
+      "score": 0.0,
+      "rationale": "The answer states that the main topic was not found in the provided documents. This is an unhelpful and unsupported response. A system should be able to determine the main topic of any given document. The answer is not grounded as it provides no evidence for its claim that the information is missing. It also lacks citations, coverage, and completeness.",
+      "citation_correctness": 0.0,
+      "coverage": 0.0
+    },
+    "latency": 1.4950237274169922,
+    "success": true
+  },
+  {
+    "mode": "text_rag",
+    "question_id": "q2",
+    "question": "What are the key findings or conclusions?",
+    "answer": "Not found in provided documents.",
+    "retrieved": [],
+    "metrics": {
+      "has_citations": false,
+      "citation_coverage": 0.0,
+      "citation_count": 0,
+      "retrieved_pages_count": 0,
+      "estimated_context_units": 0,
+      "latency_seconds": 1.019153118133545
+    },
+    "judge": {
+      "score": 1.0,
+      "rationale": "The model correctly identifies that no documents were provided to answer the question. Therefore, stating that the information is 'Not found in provided documents' is the only accurate and grounded response possible.",
+      "citation_correctness": 1.0,
+      "coverage": 1.0
+    },
+    "latency": 1.019153118133545,
+    "success": true
+  },
+  {
+    "mode": "text_rag",
+    "question_id": "q3",
+    "question": "What methodology was used?",
+    "answer": "Not found in provided documents.",
+    "retrieved": [],
+    "metrics": {
+      "has_citations": false,
+      "citation_coverage": 0.0,
+      "citation_count": 0,
+      "retrieved_pages_count": 0,
+      "estimated_context_units": 0,
+      "latency_seconds": 0.949970006942749
+    },
+    "judge": {
+      "score": 1.0,
+      "rationale": "The answer correctly states that the information is not available in the provided context. Since no documents were provided as evidence, this is the only possible and correct response. The system successfully avoided hallucination.",
+      "citation_correctness": 1.0,
+      "coverage": 1.0
+    },
+    "latency": 0.949970006942749,
+    "success": true
+  },
+  {
+    "mode": "text_rag",
+    "question_id": "q4",
+    "question": "What are the main contributions?",
+    "answer": "Not found in provided documents.",
+    "retrieved": [],
+    "metrics": {
+      "has_citations": false,
+      "citation_coverage": 0.0,
+      "citation_count": 0,
+      "retrieved_pages_count": 0,
+      "estimated_context_units": 0,
+      "latency_seconds": 0.9256410598754883
+    },
+    "judge": {
+      "score": 1.0,
+      "rationale": "The answer correctly states that the requested information was not found in the provided documents. Given that no evidence was provided, this is the most accurate and truthful response, as it avoids hallucination.",
+      "citation_correctness": 1.0,
+      "coverage": 1.0
+    },
+    "latency": 0.9256410598754883,
+    "success": true
+  },
+  {
+    "mode": "text_rag",
+    "question_id": "q5",
+    "question": "What datasets or experiments are mentioned?",
+    "answer": "Not found in provided documents.",
+    "retrieved": [],
+    "metrics": {
+      "has_citations": false,
+      "citation_coverage": 0.0,
+      "citation_count": 0,
+      "retrieved_pages_count": 0,
+      "estimated_context_units": 0,
+      "latency_seconds": 1.284433126449585
+    },
+    "judge": {
+      "score": 0.5,
+      "rationale": "Judge response blocked by safety filter",
+      "citation_correctness": 0.5,
+      "coverage": 0.5
+    },
+    "latency": 1.284433126449585,
+    "success": true
+  }
+]

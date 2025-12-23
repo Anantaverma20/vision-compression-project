@@ -15,6 +15,8 @@ Create a file named `.env` (not `.env.example`) with:
 ```bash
 GEMINI_API_KEY=your_actual_gemini_api_key_here
 SUPERMEMORY_API_KEY=your_actual_supermemory_api_key_here
+
+# Note: Langfuse removed - using local observability in eval/ instead
 ```
 
 ### Step 2: Restart the backend server
@@ -78,6 +80,13 @@ gcloud run services update vision-compression-backend `
 6. Click "Deploy"
 
 **After updating, Cloud Run will automatically redeploy with the new environment variables.**
+
+## Observability
+
+The evaluation framework (`eval/`) includes local observability and tracing. See the main README.md for details on:
+- JSONL trace files
+- Per-question artifacts  
+- Local evaluation system
 
 ## Verify Environment Variables are Loaded
 

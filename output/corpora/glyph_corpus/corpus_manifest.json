@@ -1,0 +1,84 @@
+{
+  "corpus_id": "glyph_corpus",
+  "created_at": "2025-12-22T19:22:10.435394",
+  "docs": [
+    {
+      "doc_id": "glyph paper_20251222_192046",
+      "pdf_path": "data\\glyph paper.pdf",
+      "pages": [
+        {
+          "page": 1,
+          "file": "C:\\Users\\Ananta Verma\\work\\My projects\\Devhacks\\vision-compression-project\\output\\corpora\\glyph_corpus\\docs\\glyph paper_20251222_192046\\pages\\page_001.json",
+          "memory_id": "YKm54bHXJjrm5qqHDZrYgZ"
+        },
+        {
+          "page": 2,
+          "file": "C:\\Users\\Ananta Verma\\work\\My projects\\Devhacks\\vision-compression-project\\output\\corpora\\glyph_corpus\\docs\\glyph paper_20251222_192046\\pages\\page_002.json",
+          "memory_id": "FBrvLHDWpPe6tckMs3J6nA"
+        },
+        {
+          "page": 3,
+          "file": "C:\\Users\\Ananta Verma\\work\\My projects\\Devhacks\\vision-compression-project\\output\\corpora\\glyph_corpus\\docs\\glyph paper_20251222_192046\\pages\\page_003.json",
+          "memory_id": "GYHYS9pF4xWJYq8dR1RyvN"
+        },
+        {
+          "page": 4,
+          "file": "C:\\Users\\Ananta Verma\\work\\My projects\\Devhacks\\vision-compression-project\\output\\corpora\\glyph_corpus\\docs\\glyph paper_20251222_192046\\pages\\page_004.json",
+          "memory_id": "XxaXBc4v9A17WRt1RnEkCe"
+        },
+        {
+          "page": 5,
+          "file": "C:\\Users\\Ananta Verma\\work\\My projects\\Devhacks\\vision-compression-project\\output\\corpora\\glyph_corpus\\docs\\glyph paper_20251222_192046\\pages\\page_005.json",
+          "memory_id": "XfcQa6Aqaz6NX1DEgxo8hf"
+        },
+        {
+          "page": 6,
+          "file": "C:\\Users\\Ananta Verma\\work\\My projects\\Devhacks\\vision-compression-project\\output\\corpora\\glyph_corpus\\docs\\glyph paper_20251222_192046\\pages\\page_006.json",
+          "memory_id": "Bykv3Cb6dGo3v1s8tsK2Ya"
+        },
+        {
+          "page": 7,
+          "file": "C:\\Users\\Ananta Verma\\work\\My projects\\Devhacks\\vision-compression-project\\output\\corpora\\glyph_corpus\\docs\\glyph paper_20251222_192046\\pages\\page_007.json",
+          "memory_id": "XfKQQVXtkzHw7fbK1EqW5s"
+        },
+        {
+          "page": 8,
+          "file": "C:\\Users\\Ananta Verma\\work\\My projects\\Devhacks\\vision-compression-project\\output\\corpora\\glyph_corpus\\docs\\glyph paper_20251222_192046\\pages\\page_008.json",
+          "memory_id": "DhLZeedVeN5QkS2QL5fYi3"
+        },
+        {
+          "page": 9,
+          "file": "C:\\Users\\Ananta Verma\\work\\My projects\\Devhacks\\vision-compression-project\\output\\corpora\\glyph_corpus\\docs\\glyph paper_20251222_192046\\pages\\page_009.json",
+          "memory_id": "uHTpgVL5t8XEVTUSEcyivD"
+        },
+        {
+          "page": 10,
+          "file": "C:\\Users\\Ananta Verma\\work\\My projects\\Devhacks\\vision-compression-project\\output\\corpora\\glyph_corpus\\docs\\glyph paper_20251222_192046\\pages\\page_010.json",
+          "memory_id": "F7QUTqU6f13aRBDdYWeagY"
+        },
+        {
+          "page": 11,
+          "file": "C:\\Users\\Ananta Verma\\work\\My projects\\Devhacks\\vision-compression-project\\output\\corpora\\glyph_corpus\\docs\\glyph paper_20251222_192046\\pages\\page_011.json",
+          "memory_id": "CXexRD3HNi1z4p1iJNmojr"
+        },
+        {
+          "page": 12,
+          "file": "C:\\Users\\Ananta Verma\\work\\My projects\\Devhacks\\vision-compression-project\\output\\corpora\\glyph_corpus\\docs\\glyph paper_20251222_192046\\pages\\page_012.json",
+          "memory_id": "huTCPa1LL1UU6FDsBgaT7t"
+        },
+        {
+          "page": 13,
+          "file": "C:\\Users\\Ananta Verma\\work\\My projects\\Devhacks\\vision-compression-project\\output\\corpora\\glyph_corpus\\docs\\glyph paper_20251222_192046\\pages\\page_013.json",
+          "memory_id": "dsqyKsAoxqsRTtGCK3SEho"
+        },
+        {
+          "page": 14,
+          "file": "C:\\Users\\Ananta Verma\\work\\My projects\\Devhacks\\vision-compression-project\\output\\corpora\\glyph_corpus\\docs\\glyph paper_20251222_192046\\pages\\page_014.json",
+          "memory_id": "xoYqHiKVtV2JJYt7vNzARQ"
+        }
+      ],
+      "failed_pages": []
+    }
+  ],
+  "total_pages": 14
+}

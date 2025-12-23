@@ -20,6 +20,7 @@ interface RetrievedPage {
   page: number
   memory_id: string
   excerpt: string
+  full_content?: string
 }
 
 interface IngestResult {
@@ -29,11 +30,30 @@ interface IngestResult {
   failed_pages: Array<{ page: number; error: string }>
 }
 
+interface DocIngestResult {
+  doc_id: string
+  pages_total: number
+  pages_ingested: number
+  failed_pages: Array<{ page: number; error: string }>
+}
+
+interface CorpusIngestResult {
+  corpus_id: string
+  docs: DocIngestResult[]
+  total_pages: number
+  eval_status?: string
+  eval_run_id?: string
+}
+
 export default function Home() {
   const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
+  const [isMultiMode, setIsMultiMode] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [ingestResult, setIngestResult] = useState<IngestResult | null>(null)
+  const [corpusIngestResult, setCorpusIngestResult] = useState<CorpusIngestResult | null>(null)
   const [docId, setDocId] = useState<string | null>(null)
+  const [corpusId, setCorpusId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [currentQuestion, setCurrentQuestion] = useState("")
   const [isAsking, setIsAsking] = useState(false)
@@ -41,6 +61,8 @@ export default function Home() {
   const [topK, setTopK] = useState(8)
   const [maxCharsPerPage, setMaxCharsPerPage] = useState(1500)
   const [backendStatus, setBackendStatus] = useState<"checking" | "online" | "offline">("checking")
+  const [expandedEvidence, setExpandedEvidence] = useState<Set<number>>(new Set())
+  const [evalResults, setEvalResults] = useState<any>(null)
 
   // Check backend status on mount
   useEffect(() => {
@@ -60,8 +82,14 @@ export default function Home() {
   }, [])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0])
+    if (e.target.files) {
+      if (isMultiMode) {
+        setFiles(Array.from(e.target.files))
+        setFile(null) // Clear single file
+      } else {
+        setFile(e.target.files[0] || null)
+        setFiles([]) // Clear multiple files
+      }
     }
   }
 
@@ -123,7 +151,9 @@ export default function Home() {
 
       const data: IngestResult = await response.json()
       setIngestResult(data)
+      setCorpusIngestResult(null) // Clear corpus result
       setDocId(data.doc_id)
+      setCorpusId(null) // Clear corpus ID
       setMessages([])
       setEvidence([])
     } catch (error) {
@@ -147,31 +177,217 @@ export default function Home() {
     }
   }
 
+  const handleCorpusIngest = async () => {
+    if (files.length === 0) return
+
+    setIsUploading(true)
+    const formData = new FormData()
+    
+    // Append all files
+    files.forEach((file) => {
+      formData.append("files", file)
+    })
+
+    formData.append("auto_eval", "true")
+    formData.append("eval_mode", "text_rag")  // or "optical", "hybrid", "all"
+    formData.append("eval_judge", "rule")      // or "llm"
+  
+
+    try {
+      // First check if backend is reachable
+      try {
+        const healthCheck = await fetch(`${BACKEND_URL}/health`)
+        if (!healthCheck.ok) {
+          throw new Error(`Backend health check failed: ${healthCheck.status} ${healthCheck.statusText}`)
+        }
+      } catch (healthError) {
+        throw new Error(`Cannot reach backend at ${BACKEND_URL}. Make sure the backend is running. Error: ${healthError instanceof Error ? healthError.message : "Network error"}`)
+      }
+
+      // Create AbortController for timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 600000) // 10 minutes timeout
+
+      let response: Response
+      try {
+        response = await fetch(`${BACKEND_URL}/ingest-corpus`, {
+          method: "POST",
+          body: formData,
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
+      } catch (fetchError) {
+        clearTimeout(timeoutId)
+        if (fetchError instanceof TypeError && fetchError.message.includes("Failed to fetch")) {
+          throw new Error(`Network error: Cannot reach backend at ${BACKEND_URL}/ingest-corpus. This might be a CORS issue or the endpoint is not responding. Check browser console (F12) for details.`)
+        }
+        throw fetchError
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        let errorMessage = `Upload failed: ${response.status} ${response.statusText}`
+        try {
+          const errorJson = JSON.parse(errorText)
+          if (errorJson.detail) {
+            errorMessage += ` - ${errorJson.detail}`
+          }
+        } catch {
+          if (errorText) {
+            errorMessage += ` - ${errorText}`
+          }
+        }
+        throw new Error(errorMessage)
+      }
+
+      const data: CorpusIngestResult = await response.json()
+      setCorpusIngestResult(data)
+      setIngestResult(null) // Clear single doc result
+      setCorpusId(data.corpus_id)
+      setDocId(null) // Clear single doc ID
+      setMessages([])
+      setEvidence([])
+      
+      // Show success message
+      alert(`Corpus "${data.corpus_id}" created successfully!\n\n${data.docs.length} documents processed\n${data.total_pages} total pages ingested`)
+    } catch (error) {
+      console.error("Error uploading files:", error)
+      let errorMessage = "Unknown error"
+      if (error instanceof Error) {
+        if (error.name === "AbortError") {
+          errorMessage = "Request timed out after 10 minutes. The PDFs might be too large or processing is taking too long."
+        } else if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError")) {
+          errorMessage = `Cannot connect to backend at ${BACKEND_URL}. Please check:
+1. Is the backend URL correct in .env.local?
+2. Is Cloud Run service running?
+3. Check browser console (F12) for more details`
+        } else {
+          errorMessage = error.message
+        }
+      }
+      alert(`Failed to upload files: ${errorMessage}`)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const [isLoadingEval, setIsLoadingEval] = useState(false)
+  const [isRunningEval, setIsRunningEval] = useState(false)
+  
+  const runEvaluation = async (corpusId: string, mode: string = "text_rag") => {
+    setIsRunningEval(true)
+    try {
+      const response = await fetch(`${BACKEND_URL}/run-eval/${corpusId}?mode=${mode}&judge=rule`, {
+        method: 'POST'
+      })
+      if (response.ok) {
+        const data = await response.json()
+        alert(`Evaluation started! Status: ${data.status}\nRun ID: ${data.run_id || 'N/A'}\n\nResults will be available shortly. You can check back in a few moments.`)
+        // Optionally fetch results after a delay
+        setTimeout(() => {
+          fetchEvalResults(corpusId)
+        }, 2000)
+      } else {
+        const errorText = await response.text()
+        alert(`Failed to start evaluation: ${response.status} ${response.statusText}\n\n${errorText}`)
+      }
+    } catch (error) {
+      console.error("Failed to start evaluation:", error)
+      alert(`Failed to start evaluation: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsRunningEval(false)
+    }
+  }
+  
+  const fetchEvalResults = async (corpusId: string) => {
+    setIsLoadingEval(true)
+    try {
+      const response = await fetch(`${BACKEND_URL}/eval-results/${corpusId}`)
+      if (response.ok) {
+        const data = await response.json()
+        // Check if results are not ready yet
+        if (data.status === "not_ready") {
+          // Set evalResults to show "not ready" message
+          setEvalResults({ status: "not_ready", message: data.message })
+        } else {
+          setEvalResults(data)
+          // Scroll to results only if we have actual results
+          if (data.results || data.summary) {
+            setTimeout(() => {
+              const resultsElement = document.getElementById('eval-results')
+              if (resultsElement) {
+                resultsElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }
+            }, 100)
+          }
+        }
+      } else {
+        const errorText = await response.text()
+        alert(`Failed to fetch evaluation results: ${response.status} ${response.statusText}\n\n${errorText}`)
+        setEvalResults(null)
+      }
+    } catch (error) {
+      console.error("Failed to fetch eval results:", error)
+      alert(`Failed to fetch evaluation results: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      setEvalResults(null)
+    } finally {
+      setIsLoadingEval(false)
+    }
+  }
+
   const handleAsk = async () => {
-    if (!docId || !currentQuestion.trim()) return
+    // Check if we have either docId (single doc) or corpusId (multiple docs)
+    if ((!docId && !corpusId) || !currentQuestion.trim()) return
 
     const question = currentQuestion.trim()
     const userMessage: Message = { role: "user", content: question }
     setMessages((prev) => [...prev, userMessage])
     setCurrentQuestion("")
     setIsAsking(true)
+    setExpandedEvidence(new Set()) // Reset expanded evidence
 
     try {
+      // Build request body - use corpus_id if available, otherwise doc_id
+      const requestBody: {
+        doc_id?: string
+        corpus_id?: string
+        question: string
+        top_k: number
+        max_chars_per_page: number
+      } = {
+        question: question,
+        top_k: topK,
+        max_chars_per_page: maxCharsPerPage,
+      }
+
+      if (corpusId) {
+        requestBody.corpus_id = corpusId
+      } else if (docId) {
+        requestBody.doc_id = docId
+      }
+
       const response = await fetch(`${BACKEND_URL}/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          doc_id: docId,
-          question: question,
-          top_k: topK,
-          max_chars_per_page: maxCharsPerPage,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       if (!response.ok) {
-        throw new Error(`Chat failed: ${response.statusText}`)
+        const errorText = await response.text()
+        let errorMessage = `Chat failed: ${response.status} ${response.statusText}`
+        try {
+          const errorJson = JSON.parse(errorText)
+          if (errorJson.detail) {
+            errorMessage += ` - ${errorJson.detail}`
+          }
+        } catch {
+          if (errorText) {
+            errorMessage += ` - ${errorText}`
+          }
+        }
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
@@ -226,21 +442,44 @@ export default function Home() {
         {/* Upload Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Upload Document</CardTitle>
-            <CardDescription>Upload a PDF file to process and ingest</CardDescription>
+            <CardTitle>Upload Document{isMultiMode ? "s" : ""}</CardTitle>
+            <CardDescription>
+              {isMultiMode 
+                ? "Upload multiple PDF files to create a corpus" 
+                : "Upload a PDF file to process and ingest"}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <input
+                type="checkbox"
+                id="multi-mode"
+                checked={isMultiMode}
+                onChange={(e) => {
+                  setIsMultiMode(e.target.checked)
+                  setFile(null)
+                  setFiles([])
+                  setIngestResult(null)
+                  setCorpusIngestResult(null)
+                }}
+                className="w-4 h-4"
+              />
+              <label htmlFor="multi-mode" className="text-sm cursor-pointer">
+                Upload multiple PDFs (create corpus)
+              </label>
+            </div>
             <div className="flex gap-4">
               <Input
                 type="file"
                 accept=".pdf"
+                multiple={isMultiMode}
                 onChange={handleFileChange}
                 disabled={isUploading}
                 className="flex-1"
               />
               <Button
-                onClick={handleIngest}
-                disabled={!file || isUploading}
+                onClick={isMultiMode ? handleCorpusIngest : handleIngest}
+                disabled={isMultiMode ? files.length === 0 : !file || isUploading}
               >
                 {isUploading ? (
                   <>
@@ -250,11 +489,16 @@ export default function Home() {
                 ) : (
                   <>
                     <Upload className="mr-2 h-4 w-4" />
-                    Process & Ingest
+                    {isMultiMode ? `Process ${files.length} File${files.length !== 1 ? 's' : ''}` : "Process & Ingest"}
                   </>
                 )}
               </Button>
             </div>
+            {isMultiMode && files.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                Selected: {files.length} file{files.length !== 1 ? 's' : ''} ({files.map(f => f.name).join(", ")})
+              </div>
+            )}
 
             {ingestResult && (
               <div className="mt-4 p-4 bg-muted rounded-md space-y-2">
@@ -268,12 +512,13 @@ export default function Home() {
                   {ingestResult.pages_ingested} / {ingestResult.pages_total} ingested
                 </div>
                 {ingestResult.failed_pages.length > 0 && (
-                  <div className="mt-2">
-                    <span className="font-semibold text-destructive">Failed Pages:</span>
-                    <ul className="list-disc list-inside mt-1">
+                  <div className="mt-2 p-3 bg-destructive/10 rounded-md border border-destructive/20">
+                    <span className="font-semibold text-destructive">Failed Pages ({ingestResult.failed_pages.length}):</span>
+                    <ul className="list-disc list-inside mt-2 space-y-1">
                       {ingestResult.failed_pages.map((fp) => (
                         <li key={fp.page} className="text-sm">
-                          Page {fp.page}: {fp.error}
+                          <span className="font-medium">Page {fp.page}:</span>{" "}
+                          <span className="text-muted-foreground">{fp.error}</span>
                         </li>
                       ))}
                     </ul>
@@ -281,17 +526,101 @@ export default function Home() {
                 )}
               </div>
             )}
+
+            {corpusIngestResult && (
+              <div className="mt-4 p-4 bg-muted rounded-md space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    <span className="font-semibold">Corpus ID:</span>
+                    <code className="px-2 py-1 bg-background rounded text-sm">{corpusIngestResult.corpus_id}</code>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => runEvaluation(corpusIngestResult.corpus_id, "text_rag")}
+                      disabled={isRunningEval || isLoadingEval}
+                    >
+                      {isRunningEval ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Running...
+                        </>
+                      ) : (
+                        "Run Evaluation"
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fetchEvalResults(corpusIngestResult.corpus_id)}
+                      disabled={isLoadingEval || isRunningEval}
+                    >
+                      {isLoadingEval ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        "View Results"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <span className="font-semibold">Total:</span>{" "}
+                  {corpusIngestResult.docs.length} document{corpusIngestResult.docs.length !== 1 ? 's' : ''}, {corpusIngestResult.total_pages} pages ingested
+                </div>
+                <div className="space-y-2">
+                  <span className="font-semibold">Documents:</span>
+                  {corpusIngestResult.docs.map((doc, idx) => (
+                    <div key={idx} className="pl-4 border-l-2 border-primary/20">
+                      <div className="text-sm">
+                        <span className="font-medium">Doc {idx + 1}:</span>{" "}
+                        <code className="px-1 py-0.5 bg-background rounded text-xs">{doc.doc_id}</code>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {doc.pages_ingested} / {doc.pages_total} pages
+                        {doc.failed_pages.length > 0 && (
+                          <>
+                            <span className="text-destructive ml-2">
+                              ({doc.failed_pages.length} failed)
+                            </span>
+                            <div className="mt-1 p-2 bg-destructive/10 rounded border border-destructive/20">
+                              <span className="font-semibold text-destructive text-xs">Failed Pages:</span>
+                              <ul className="list-disc list-inside mt-1 space-y-0.5">
+                                {doc.failed_pages.map((fp) => (
+                                  <li key={fp.page} className="text-xs">
+                                    <span className="font-medium">Page {fp.page}:</span>{" "}
+                                    <span className="text-muted-foreground">{fp.error}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Main Layout: Chat + Evidence */}
-        {docId && (
+        {(docId || corpusId) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left: Chat */}
             <Card className="flex flex-col">
               <CardHeader>
                 <CardTitle>Chat</CardTitle>
-                <CardDescription>Ask questions about the document</CardDescription>
+                <CardDescription>
+                  {corpusId 
+                    ? "Ask questions about the documents in the corpus" 
+                    : "Ask questions about the document"}
+                </CardDescription>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col space-y-4">
                 {/* Chat History */}
@@ -394,8 +723,8 @@ export default function Home() {
             {/* Right: Evidence Panel */}
             <Card>
               <CardHeader>
-                <CardTitle>Evidence</CardTitle>
-                <CardDescription>Retrieved pages from the document</CardDescription>
+                <CardTitle>Evidence & Proof</CardTitle>
+                <CardDescription>Retrieved pages from the document with full text proof</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 max-h-[700px] overflow-y-auto">
@@ -404,26 +733,128 @@ export default function Home() {
                       No evidence retrieved yet. Ask a question to see relevant pages.
                     </div>
                   ) : (
-                    evidence.map((item, idx) => (
-                      <Card key={idx} className="bg-muted/50">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <span className="font-semibold text-sm">Page {item.page}</span>
-                            <code className="text-xs bg-background px-2 py-1 rounded">
-                              {item.memory_id.slice(0, 8)}...
-                            </code>
-                          </div>
-                          <p className="text-sm text-muted-foreground line-clamp-3">
-                            {item.excerpt}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ))
+                    evidence.map((item, idx) => {
+                      const isExpanded = expandedEvidence.has(idx)
+                      const displayContent = isExpanded && item.full_content ? item.full_content : item.excerpt
+                      
+                      return (
+                        <Card key={idx} className="bg-muted/50">
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between mb-2">
+                              <span className="font-semibold text-sm">Page {item.page}</span>
+                              <div className="flex items-center gap-2">
+                                <code className="text-xs bg-background px-2 py-1 rounded">
+                                  {item.memory_id.slice(0, 8)}...
+                                </code>
+                                {item.full_content && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      const newExpanded = new Set(expandedEvidence)
+                                      if (isExpanded) {
+                                        newExpanded.delete(idx)
+                                      } else {
+                                        newExpanded.add(idx)
+                                      }
+                                      setExpandedEvidence(newExpanded)
+                                    }}
+                                    className="h-6 text-xs"
+                                  >
+                                    {isExpanded ? "Show Less" : "Show Full Text"}
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {isExpanded && item.full_content ? (
+                                <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap bg-background/50 p-3 rounded border">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {item.full_content}
+                                  </ReactMarkdown>
+                                </div>
+                              ) : (
+                                <p className="line-clamp-3">{item.excerpt}</p>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })
                   )}
                 </div>
               </CardContent>
             </Card>
           </div>
+        )}
+        
+        {/* Evaluation Results */}
+        {evalResults && (
+          <Card id="eval-results" className="mt-6">
+            <CardHeader>
+              <CardTitle>Evaluation Results</CardTitle>
+              <CardDescription>Quality scores and metrics for the corpus</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {evalResults.status === "not_ready" ? (
+                <div className="text-muted-foreground">
+                  <p>{evalResults.message || "No evaluation results available yet. Evaluation may still be running."}</p>
+                  <p className="mt-2 text-sm">You can check back later or refresh the page.</p>
+                </div>
+              ) : evalResults.metadata && (
+                <div className="mb-4 p-3 bg-muted rounded text-sm">
+                  <div className="font-semibold mb-2">Evaluation Metadata</div>
+                  <div className="space-y-1 text-muted-foreground">
+                    {evalResults.metadata.run_timestamp && (
+                      <div><strong>Run Time:</strong> {new Date(evalResults.metadata.run_timestamp).toLocaleString()}</div>
+                    )}
+                    {evalResults.metadata.questions_source && (
+                      <div><strong>Questions Source:</strong> {evalResults.metadata.questions_source}</div>
+                    )}
+                    {evalResults.metadata.total_questions && (
+                      <div><strong>Total Questions:</strong> {evalResults.metadata.total_questions}</div>
+                    )}
+                    {evalResults.metadata.modes_evaluated && (
+                      <div><strong>Modes Evaluated:</strong> {evalResults.metadata.modes_evaluated.join(", ")}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {evalResults.summary ? (
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {evalResults.summary}
+                  </ReactMarkdown>
+                </div>
+              ) : evalResults.results && Array.isArray(evalResults.results) && evalResults.results.length > 0 ? (
+                <div className="space-y-4">
+                  {evalResults.results.slice(0, 20).map((result: any, idx: number) => (
+                    <div key={idx} className="p-3 bg-muted rounded border">
+                      <div className="font-semibold text-sm mb-2">{result.question}</div>
+                      <div className="text-xs space-y-1">
+                        <div className="flex gap-4">
+                          <div>Score: <span className="font-medium">{(result.judge?.score * 100 || 0).toFixed(1)}%</span></div>
+                          <div>Citation: <span className="font-medium">{(result.judge?.citation_correctness * 100 || 0).toFixed(1)}%</span></div>
+                          <div>Coverage: <span className="font-medium">{(result.judge?.coverage * 100 || 0).toFixed(1)}%</span></div>
+                        </div>
+                        {result.judge?.rationale && (
+                          <div className="text-muted-foreground mt-2 text-xs">{result.judge.rationale}</div>
+                        )}
+                        {result.answer && (
+                          <div className="mt-2 p-2 bg-background/50 rounded text-xs">
+                            <div className="font-medium mb-1">Answer:</div>
+                            <div className="prose prose-xs max-w-none">{result.answer}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-muted-foreground">No evaluation results available yet. Evaluation may still be running.</div>
+              )}
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

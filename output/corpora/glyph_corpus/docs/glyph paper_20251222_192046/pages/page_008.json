@@ -1,0 +1,6 @@
+{
+  "page_number": 8,
+  "markdown": "```json\n{\n  \"page_number\": 8,\n  \"markdown\": \"| Model | SP | CP | UA | Acc | F1 |\\n| :--- | :--- | :--- | :--- | :--- | :--- |\\n| GLM-4.1V-9B-Base | 36.76 | 23.41 | 21.52 | 29.18 | 28.78 |\\n| Glyph-Base | 47.91 | 22.24 | 14.80 | 32.48 | 34.44 |\\n| Glyph | **57.73** | **39.75** | **27.80** | **45.57** | **46.32** |\\n\\n**Table 4:** Results on MMLongBench-Doc (%). SP, CP, UA, and Acc",
+  "entities": [],
+  "summary": ""
+}

@@ -91,7 +91,7 @@ if (Test-Path $envFile) {
         if ($line -match '^\s*([^=]+)=(.*)$' -and $line -notmatch '^\s*#') {
             $key = $matches[1].Trim()
             $value = $matches[2].Trim()
-            if ($key -eq "GEMINI_API_KEY" -or $key -eq "SUPERMEMORY_API_KEY") {
+            if ($key -eq "GEMINI_API_KEY" -or $key -eq "SUPERMEMORY_API_KEY" -or $key -eq "GCP_PROJECT_ID") {
                 $envList += "$key=$value"
             }
         }

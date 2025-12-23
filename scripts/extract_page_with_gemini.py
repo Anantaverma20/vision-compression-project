@@ -5,14 +5,20 @@ Extract and compress the first page of a PDF using Gemini vision model.
 
 import os
 import json
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
-import google.generativeai as genai
 from pdf2image import convert_from_path
 from PIL import Image
 
 # Load environment variables
 load_dotenv()
+
+# Add backend to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
+
+from app.llm.vertex_gemini import VertexGeminiClient
+from app.config import GEMINI_MODEL, GCP_PROJECT_ID
 
 # Configuration
 PDF_PATH = Path(__file__).parent.parent / "data" / "deepseek ocr paper.pdf"
@@ -21,7 +27,6 @@ OUTPUT_IMAGE = OUTPUT_DIR / "page_1.png"
 OUTPUT_JSON = OUTPUT_DIR / "page_1.json"
 
 # Gemini configuration
-GEMINI_MODEL = "gemini-3-pro-preview"
 TEMPERATURE = 0
 MAX_OUTPUT_TOKENS = 2048
 
@@ -48,22 +53,20 @@ def main():
         print(f"Error: PDF not found at {PDF_PATH}")
         return
     
-    # Get API key
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        print("Error: GEMINI_API_KEY not found in environment variables")
-        print("Please create a .env file with: GEMINI_API_KEY=your_key_here")
+    # Validate GCP project ID
+    if not GCP_PROJECT_ID:
+        print("Error: GCP_PROJECT_ID not found in environment variables")
+        print("Please create a .env file with: GCP_PROJECT_ID=your_project_id")
+        print("Also ensure you have authenticated with: gcloud auth application-default login")
         return
     
-    # Configure Gemini
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(
-        model_name=GEMINI_MODEL,
-        generation_config={
-            "temperature": TEMPERATURE,
-            "max_output_tokens": MAX_OUTPUT_TOKENS,
-        }
-    )
+    # Create Vertex Gemini client
+    try:
+        client = VertexGeminiClient(model_name=GEMINI_MODEL)
+    except Exception as e:
+        print(f"Error initializing Vertex Gemini client: {e}")
+        print("Make sure you have authenticated with: gcloud auth application-default login")
+        return
     
     # Convert first page of PDF to image
     print(f"Converting first page of {PDF_PATH} to image...")
@@ -124,10 +127,11 @@ def main():
     
     # Send image to Gemini
     print("Sending image to Gemini...")
-    response = model.generate_content([PROMPT, page_image])
-    
-    # Extract response text
-    response_text = response.text
+    response_text = client.generate_content(
+        contents=[PROMPT, page_image],
+        temperature=TEMPERATURE,
+        max_output_tokens=MAX_OUTPUT_TOKENS,
+    )
     
     # Try to parse as JSON, if not wrap it
     try:

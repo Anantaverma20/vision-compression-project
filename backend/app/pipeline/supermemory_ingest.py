@@ -85,10 +85,14 @@ def ingest_page_to_supermemory(
     doc_id: str,
     page_number: int,
     pdf_path: Path,
-    overwrite: bool = False
+    overwrite: bool = False,
+    corpus_id: Optional[str] = None
 ) -> tuple[bool, Optional[str], Optional[str]]:
     """
     Ingest a single page into Supermemory.
+    
+    Args:
+        corpus_id: Optional corpus ID to include in metadata
     
     Returns:
         tuple: (success: bool, memory_id: str or None, error: str or None)
@@ -114,6 +118,10 @@ def ingest_page_to_supermemory(
         'source_file': str(pdf_path)
     }
     
+    # Add corpus_id if provided
+    if corpus_id:
+        metadata['corpus_id'] = corpus_id
+    
     # Ingest with retry
     try:
         memory_id = _ingest_page_with_retry(client, content, metadata)
@@ -127,7 +135,8 @@ def ingest_pages_dir(
     pdf_path: Path,
     doc_id: str,
     manifest_path: Path,
-    overwrite: bool = False
+    overwrite: bool = False,
+    corpus_id: Optional[str] = None
 ) -> Dict:
     """
     Ingest all page JSON files from a directory into Supermemory.
@@ -199,7 +208,7 @@ def ingest_pages_dir(
         
         # Ingest page
         success, memory_id, error = ingest_page_to_supermemory(
-            client, file_path, doc_id, page_number, pdf_path, overwrite
+            client, file_path, doc_id, page_number, pdf_path, overwrite, corpus_id
         )
         
         if success:
@@ -211,8 +220,8 @@ def ingest_pages_dir(
         else:
             return page_number, None, {'page': page_number, 'error': error or 'Unknown error'}
     
-    # Process in parallel (10 workers for Supermemory API calls)
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    # Process in parallel (20 workers for Supermemory API calls - increased for faster ingestion)
+    with ThreadPoolExecutor(max_workers=20) as executor:
         future_to_file = {
             executor.submit(ingest_page_wrapper, file_path_str): file_path_str
             for file_path_str in page_files
@@ -245,5 +254,6 @@ def ingest_pages_dir(
     with open(manifest_path, 'w', encoding='utf-8') as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
     
+    # Ingestion complete
     return manifest
 

@@ -7,19 +7,24 @@ Processes entire PDF or a page range, saving per-page images and JSON outputs.
 import os
 import json
 import argparse
+import sys
 import time
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
-import google.generativeai as genai
 from pdf2image import convert_from_path
 from PIL import Image
 
 # Load environment variables
 load_dotenv()
 
+# Add backend to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
+
+from app.llm.vertex_gemini import VertexGeminiClient
+from app.config import GEMINI_MODEL, GCP_PROJECT_ID
+
 # Gemini configuration
-GEMINI_MODEL = "gemini-3-pro-preview"
 TEMPERATURE = 0
 MAX_OUTPUT_TOKENS = 2048
 
@@ -66,12 +71,12 @@ def setup_poppler_bin(poppler_path):
     return str(poppler_bin) if poppler_bin.exists() else None
 
 
-def call_gemini_with_retry(model, prompt, image, max_retries=3):
+def call_gemini_with_retry(client, prompt, image, max_retries=3):
     """
     Call Gemini API with exponential backoff retry logic.
     
     Args:
-        model: Gemini GenerativeModel instance
+        client: VertexGeminiClient instance
         prompt: Text prompt
         image: PIL Image
         max_retries: Maximum number of retry attempts
@@ -81,8 +86,12 @@ def call_gemini_with_retry(model, prompt, image, max_retries=3):
     """
     for attempt in range(max_retries):
         try:
-            response = model.generate_content([prompt, image])
-            return response.text
+            response_text = client.generate_content(
+                contents=[prompt, image],
+                temperature=TEMPERATURE,
+                max_output_tokens=MAX_OUTPUT_TOKENS,
+            )
+            return response_text
         except Exception as e:
             if attempt < max_retries - 1:
                 wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
@@ -95,7 +104,7 @@ def call_gemini_with_retry(model, prompt, image, max_retries=3):
     return None
 
 
-def process_page(page_num, pdf_path, dpi, output_pages_dir, model, overwrite, sleep_time):
+def process_page(page_num, pdf_path, dpi, output_pages_dir, client, overwrite, sleep_time):
     """
     Process a single PDF page.
     
@@ -104,7 +113,7 @@ def process_page(page_num, pdf_path, dpi, output_pages_dir, model, overwrite, sl
         pdf_path: Path to PDF file
         dpi: DPI for image conversion
         output_pages_dir: Directory to save outputs
-        model: Gemini GenerativeModel instance
+        client: VertexGeminiClient instance
         overwrite: Whether to overwrite existing files
         sleep_time: Seconds to sleep between API calls
     
@@ -157,7 +166,7 @@ def process_page(page_num, pdf_path, dpi, output_pages_dir, model, overwrite, sl
     
     # Call Gemini API
     print(f"  Page {page_num}: Calling Gemini API...")
-    response_text = call_gemini_with_retry(model, PROMPT, page_image)
+    response_text = call_gemini_with_retry(client, PROMPT, page_image)
     
     if response_text is None:
         return False, f"Gemini API call failed after retries", None
@@ -311,22 +320,20 @@ def main():
         print(f"Error: PDF not found at {pdf_path}")
         return
     
-    # Get API key
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        print("Error: GEMINI_API_KEY not found in environment variables")
-        print("Please create a .env file with: GEMINI_API_KEY=your_key_here")
+    # Validate GCP project ID
+    if not GCP_PROJECT_ID:
+        print("Error: GCP_PROJECT_ID not found in environment variables")
+        print("Please create a .env file with: GCP_PROJECT_ID=your_project_id")
+        print("Also ensure you have authenticated with: gcloud auth application-default login")
         return
     
-    # Configure Gemini
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(
-        model_name=GEMINI_MODEL,
-        generation_config={
-            "temperature": TEMPERATURE,
-            "max_output_tokens": MAX_OUTPUT_TOKENS,
-        }
-    )
+    # Create Vertex Gemini client
+    try:
+        client = VertexGeminiClient(model_name=GEMINI_MODEL)
+    except Exception as e:
+        print(f"Error initializing Vertex Gemini client: {e}")
+        print("Make sure you have authenticated with: gcloud auth application-default login")
+        return
     
     # Get total number of pages
     print(f"Reading PDF: {pdf_path}")
@@ -410,7 +417,7 @@ def main():
     for page_num in range(start_page, end_page + 1):
         print(f"Processing page {page_num}/{end_page}...")
         success, error, json_data = process_page(
-            page_num, pdf_path, args.dpi, output_pages_dir, model, args.overwrite, args.sleep
+            page_num, pdf_path, args.dpi, output_pages_dir, client, args.overwrite, args.sleep
         )
         
         if success:

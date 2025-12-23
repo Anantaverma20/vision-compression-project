@@ -1,0 +1,6 @@
+{
+  "page_number": 7,
+  "markdown": "```json\n{\n  \"page_number\": 7,\n  \"markdown\": \"## Table 3: Performance on the Ruler benchmark (%)\\n\\nWe demonstrate the impact of different DPI settings on our model's performance and the resulting compression ratios. For each configuration, the table includes both the average compression ratio across all sub-tasks and the maximum compression achieved for specific sub-task types.\\n\\n| Model | Niah-S1 | Niah-S2 | Niah-M1 | Niah-M2 | Niah-V | Niah-Q | VT | CWE | FWE | QA-1 | QA-2 | Avg |\\n| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\\n| GPT-4.1 | 100.0 | 98.85 | 100.0 | 100.0 | 99.67 | 100.0 | 100.0 | 97.87 | 98.66 | 86.82 | 77.47 | 96.30 |\\n| LLaMA-3.1-8B-Instruct | 99.33 | 99.33 | 99.33 | **99.00** | 98.17 | <u>99.67</u> | 87.07 | 57.30 | 81.85 | **84.00** | 58.00 | 87.55 |\\n| Qwen2.5-7B-Instruct-1M | **100.00** | <u>99.67</u> | <u>99.67</u> | **99.00** | 93.83 | 98.75 | 85.40 | 72.10 | 85.67 | <u>80.00</u> | 60.67 | 88.61 |\\n| Qwen3-8B | **100.00** | **100.00** | 95.33 | 84.67 | 97.42 | 99.33 | <u>98.47</u> | 74.67 | 86.67 | 70.33 | 53.33 | 87.29 |\\n| GLM-4-9B-Chat-1M | **100.00** | **100.00** | 92.67 | **99.00** | 95.00 | **100.00** | 98.20 | 49",
+  "entities": [],
+  "summary": ""
+}

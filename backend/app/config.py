@@ -1,8 +1,11 @@
 """Configuration management for the backend application."""
 
 import os
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file in backend directory
 # Try multiple possible locations
@@ -12,30 +15,60 @@ env_paths = [
     Path.home() / ".env",  # Home directory
 ]
 
+env_loaded = False
+loaded_path = None
 for env_path in env_paths:
-    if env_path.exists():
-        load_dotenv(env_path)
-        break
-else:
-    # If no .env file found, try loading from current directory anyway
-    load_dotenv()
+    abs_path = env_path.resolve() if env_path.exists() else None
+    if abs_path and abs_path.exists():
+        try:
+            load_dotenv(abs_path, override=True)  # Use override=True to ensure values are loaded
+            env_loaded = True
+            loaded_path = abs_path
+            # Use print since logging might not be configured yet
+            print(f"[CONFIG] Loaded .env file from: {abs_path}")
+            break
+        except Exception as e:
+            print(f"[CONFIG] Error loading .env from {abs_path}: {e}")
 
-# Gemini configuration
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = "gemini-3-pro-preview"
+if not env_loaded:
+    # If no .env file found, try loading from current directory anyway
+    print("[CONFIG] Warning: No .env file found in expected locations, trying current directory")
+    try:
+        load_dotenv(override=True)
+    except Exception as e:
+        print(f"[CONFIG] Error loading .env from current directory: {e}")
+
+# Vertex AI Gemini configuration
+GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
+GCP_LOCATION = os.getenv("GCP_LOCATION", "global")  # Default to "global"
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3-pro-preview")  # Default to gemini-3-pro-preview
+
+# Log configuration values (without sensitive data)
+# Use print since logging might not be configured yet when this module loads
+print(f"[CONFIG] GCP_PROJECT_ID: {'SET (' + GCP_PROJECT_ID + ')' if GCP_PROJECT_ID else 'NOT SET'}")
+print(f"[CONFIG] GCP_LOCATION: {GCP_LOCATION}")
+print(f"[CONFIG] GEMINI_MODEL: {GEMINI_MODEL}")
+if GCP_PROJECT_ID:
+    logger.info(f"GCP_PROJECT_ID: SET")
+    logger.info(f"GCP_LOCATION: {GCP_LOCATION}")
+    logger.info(f"GEMINI_MODEL: {GEMINI_MODEL}")
+else:
+    logger.error("GCP_PROJECT_ID: NOT SET - Vertex AI will not work!")
 GEMINI_TEMPERATURE = 0
 GEMINI_MAX_OUTPUT_TOKENS_EXTRACTION = 2048
-GEMINI_MAX_OUTPUT_TOKENS_ANSWERING = 8192  # Increased from 2048 for longer, complete answers
+GEMINI_MAX_OUTPUT_TOKENS_ANSWERING = 32768  # Increased for longer, more detailed chat responses
 
 # Supermemory configuration
 SUPERMEMORY_API_KEY = os.getenv("SUPERMEMORY_API_KEY")
 SUPERMEMORY_BASE_URL = os.getenv("SUPERMEMORY_BASE_URL")  # Optional
 SUPERMEMORY_WORKSPACE_ID = os.getenv("SUPERMEMORY_WORKSPACE_ID")  # Optional
 
+# Langfuse removed - using local observability instead
+
 # Validate required environment variables
-if not GEMINI_API_KEY:
+if not GCP_PROJECT_ID:
     import warnings
-    warnings.warn("GEMINI_API_KEY not found in environment variables. Please set it in .env file or as an environment variable.")
+    warnings.warn("GCP_PROJECT_ID not found in environment variables. Please set it in .env file or as an environment variable.")
 if not SUPERMEMORY_API_KEY:
     import warnings
     warnings.warn("SUPERMEMORY_API_KEY not found in environment variables. Please set it in .env file or as an environment variable.")

@@ -19,12 +19,18 @@ project_root = Path(__file__).parent.parent
 env_path = project_root / '.env'
 load_dotenv(dotenv_path=env_path)
 
+import sys
+# Add backend to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
+
 try:
-    import google.generativeai as genai
+    from app.llm.vertex_gemini import VertexGeminiClient
+    from app.config import GEMINI_MODEL, GCP_PROJECT_ID
     GEMINI_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     GEMINI_AVAILABLE = False
-    print("Warning: google-generativeai package not found. Install with: pip install google-generativeai")
+    print(f"Warning: Vertex AI Gemini not available: {e}")
+    print("Install with: pip install google-cloud-aiplatform")
 
 try:
     from supermemory import Supermemory
@@ -186,7 +192,7 @@ def extract_result_info(result, manifest):
     return memory_id, page_number, content
 
 
-def rewrite_query_with_gemini(question, model_name='gemini-3-pro-preview', max_retries=3):
+def rewrite_query_with_gemini(question, model_name='gemini-2.5-pro', max_retries=3):
     """
     Use Gemini to rewrite the question into better search terms.
     
@@ -207,16 +213,12 @@ Rewritten search terms:"""
     
     for attempt in range(max_retries):
         try:
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0,
-                    max_output_tokens=128
-                )
+            client = VertexGeminiClient(model_name=model_name)
+            rewritten = client.generate_content(
+                contents=prompt,
+                temperature=0,
+                max_output_tokens=128,
             )
-            
-            rewritten = response.text.strip()
             # Remove quotes if present
             rewritten = rewritten.strip('"\'')
             return rewritten
@@ -268,7 +270,7 @@ def build_evidence_pack(results, manifest, doc_id, max_chars_per_page):
     return "\n\n---\n\n".join(evidence_sections)
 
 
-def generate_answer_with_gemini(question, evidence_pack, doc_id, model_name='gemini-3-pro-preview', max_retries=3):
+def generate_answer_with_gemini(question, evidence_pack, doc_id, model_name='gemini-2.5-pro', max_retries=3):
     """
     Use Gemini to generate an answer from the evidence pack with citations.
     
@@ -299,16 +301,12 @@ Answer (with citations):"""
     
     for attempt in range(max_retries):
         try:
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0,
-                    max_output_tokens=2048
-                )
+            client = VertexGeminiClient(model_name=model_name)
+            return client.generate_content(
+                contents=prompt,
+                temperature=0,
+                max_output_tokens=2048,
             )
-            
-            return response.text.strip()
             
         except Exception as e:
             if attempt < max_retries - 1:
@@ -394,8 +392,8 @@ def main():
     )
     parser.add_argument(
         '--model',
-        default='gemini-3-pro-preview',
-        help='Gemini model to use (default: gemini-3-pro-preview)'
+        default='gemini-2.5-pro',
+        help='Gemini model to use (default: gemini-2.5-pro)'
     )
     parser.add_argument(
         '--rewrite_query',
@@ -407,8 +405,9 @@ def main():
     
     # Check dependencies
     if not GEMINI_AVAILABLE:
-        print("Error: google-generativeai package is not installed.")
-        print("Install it with: pip install google-generativeai")
+        print("Error: Vertex AI Gemini is not available.")
+        print("Install it with: pip install google-cloud-aiplatform")
+        print("Also ensure you have authenticated with: gcloud auth application-default login")
         return 1
     
     if not SUPERMEMORY_AVAILABLE:
@@ -416,18 +415,16 @@ def main():
         print("Install it with: pip install supermemory")
         return 1
     
-    # Initialize Gemini
-    gemini_api_key = os.getenv('GEMINI_API_KEY')
-    if not gemini_api_key:
-        print("Error: GEMINI_API_KEY not found in environment variables.")
+    # Validate GCP project ID
+    if not GCP_PROJECT_ID:
+        print("Error: GCP_PROJECT_ID not found in environment variables.")
         print(f"Looking for .env file at: {env_path}")
         if not env_path.exists():
             print(f"  .env file not found at {env_path}")
             print("  Please create a .env file in the project root with:")
-            print("  GEMINI_API_KEY=your_api_key_here")
+            print("  GCP_PROJECT_ID=your_project_id")
+        print("Also ensure you have authenticated with: gcloud auth application-default login")
         return 1
-    
-    genai.configure(api_key=gemini_api_key)
     
     # Initialize Supermemory
     supermemory_api_key = os.getenv('SUPERMEMORY_API_KEY')
