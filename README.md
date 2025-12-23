@@ -265,8 +265,6 @@ vision-compression-project/
 - Supermemory API key
 - Poppler (for PDF processing) - see backend README for installation
 
-**Note:** This project uses Vertex AI Gemini (not Google AI Studio API key). Billing goes through your Google Cloud project, enabling use of GenAI App Builder/Vertex credits.
-
 ## License
 
 MIT
