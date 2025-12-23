@@ -1,0 +1,11 @@
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-dotenv>=1.0.0
+google-generativeai>=0.3.0
+pillow>=10.0.0
+pdf2image>=1.16.0
+supermemory>=0.1.0
+pydantic>=2.0.0
+python-multipart>=0.0.6
+setuptools>=65.0.0
+

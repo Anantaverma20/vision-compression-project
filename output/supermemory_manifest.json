@@ -1,0 +1,117 @@
+{
+  "doc_id": "deepseek_ocr_paper",
+  "pdf_path": "data/deepseek ocr paper.pdf",
+  "created_at": "2025-12-22T03:07:57Z",
+  "pages": [
+    {
+      "page": 1,
+      "file": "output\\pages\\page_001.json",
+      "memory_id": "ZfqKQ1TkCeDRDKJyuNQk47"
+    },
+    {
+      "page": 2,
+      "file": "output\\pages\\page_002.json",
+      "memory_id": "N2gZJNJBe6yW14tPg6c2pD"
+    },
+    {
+      "page": 3,
+      "file": "output\\pages\\page_003.json",
+      "memory_id": "3cFVooPZiomXFWf8fDy9Jc"
+    },
+    {
+      "page": 4,
+      "file": "output\\pages\\page_004.json",
+      "memory_id": "E7FRkXQ5SktYk7PzbgxPsP"
+    },
+    {
+      "page": 5,
+      "file": "output\\pages\\page_005.json",
+      "memory_id": "kUBWWUGT5NniMYeNg65sxk"
+    },
+    {
+      "page": 6,
+      "file": "output\\pages\\page_006.json",
+      "memory_id": "yhZ9ynSQUcVAVjhfHD6dDJ"
+    },
+    {
+      "page": 7,
+      "file": "output\\pages\\page_007.json",
+      "memory_id": "dfhqyCiqDgPHCkPXW7Erry"
+    },
+    {
+      "page": 8,
+      "file": "output\\pages\\page_008.json",
+      "memory_id": "xhsG6BUWb3bPgAB2nUG1pr"
+    },
+    {
+      "page": 9,
+      "file": "output\\pages\\page_009.json",
+      "memory_id": "jB5QxmAUcQeiF6FEgcdJP8"
+    },
+    {
+      "page": 10,
+      "file": "output\\pages\\page_010.json",
+      "memory_id": "uw4vyYyQvS2Gkdaa4qnq71"
+    },
+    {
+      "page": 11,
+      "file": "output\\pages\\page_011.json",
+      "memory_id": "3KsbuopomdWZXjWYoMtR7U"
+    },
+    {
+      "page": 12,
+      "file": "output\\pages\\page_012.json",
+      "memory_id": "FjuoQFHUrpaALvqLtvyWLM"
+    },
+    {
+      "page": 13,
+      "file": "output\\pages\\page_013.json",
+      "memory_id": "BxqYzrSv8BpZvCywxggnXn"
+    },
+    {
+      "page": 14,
+      "file": "output\\pages\\page_014.json",
+      "memory_id": "ESggRmvXyFnjFhhgnzivf6"
+    },
+    {
+      "page": 15,
+      "file": "output\\pages\\page_015.json",
+      "memory_id": "nVJqHkHtpxnK9qkJhrnUxE"
+    },
+    {
+      "page": 16,
+      "file": "output\\pages\\page_016.json",
+      "memory_id": "ua1d6BZ2yKaC6HforDaU9U"
+    },
+    {
+      "page": 17,
+      "file": "output\\pages\\page_017.json",
+      "memory_id": "kAaoDfud4GtDAFDJRPwLHL"
+    },
+    {
+      "page": 18,
+      "file": "output\\pages\\page_018.json",
+      "memory_id": "YsBbBvh3jVcisKBbhdppco"
+    },
+    {
+      "page": 19,
+      "file": "output\\pages\\page_019.json",
+      "memory_id": "YZYToygbqTqZvdyWnVyVHX"
+    },
+    {
+      "page": 20,
+      "file": "output\\pages\\page_020.json",
+      "memory_id": "LddxqAdF1o9oZSGZNvv3yf"
+    },
+    {
+      "page": 21,
+      "file": "output\\pages\\page_021.json",
+      "memory_id": "Kh4wdwkMUd9W1QhHoPVvio"
+    },
+    {
+      "page": 22,
+      "file": "output\\pages\\page_022.json",
+      "memory_id": "TanrRoW9WcqTvXmhuZejKn"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "page_number": 16,
+  "markdown": "![Figure 10: Composite image showing Input image, Result, Deep Parsing, and Rendering of a geometry problem worksheet.](figure_10)\n\n**Figure 10 | DeepSeek-OCR also possesses the capability to copy (structure) simple planar geometric figures. Due to the intricate interdependencies among line segments in geometric shapes, parsing geometry task is extremely challenging and has a long way to go.**\n\n### 4.3.2. Multilingual recognition\n\nPDF data on the Internet contains not only Chinese and English, but also a large amount of multilingual data, which is also crucial when training LLMs. For PDF documents, DeepSeek-OCR can handle nearly 100 languages. Like Chinese and English documents, multilingual data also supports both layout and non-layout OCR formats. The visualization results are shown in Figure 11, where we select Arabic and Sinhala languages to demonstrate results.\n\n16",
+  "entities": [
+    "DeepSeek-OCR",
+    "Figure 10",
+    "Figure 11",
+    "Multilingual recognition",
+    "PDF data",
+    "LLMs",
+    "Chinese",
+    "English",
+    "Arabic",
+    "Sinhala",
+    "planar geometric figures"
+  ],
+  "summary": "This page illustrates DeepSeek-OCR's capability to structure simple planar geometric figures, acknowledging the complexity of parsing geometric interdependencies (Figure 10). It also introduces Section 4.3.2 on multilingual recognition, stating that the system supports nearly 100 languages for PDF documents in both layout and non-layout formats, with upcoming examples in Arabic and Sinhala."
+}

@@ -1,0 +1,22 @@
+{
+  "page_number": 9,
+  "markdown": "![Figure 6: Image-text ground truth examples. (a) shows a bar chart with corresponding HTML table code. (b) shows a geometric diagram with corresponding dictionary format data.](figure_6)\n\n**Figure 6 |** For charts, we do not use OneChart’s [7] dictionary format, but instead use HTML table format as labels, which can save a certain amount of tokens. For plane geometry, we convert the ground truth to dictionary format, where the dictionary contains keys such as line segments, endpoint coordinates, line segment types, etc., for better readability. Each line segment is encoded using the Slow Perception [39] manner.\n\nto render 10M images, mainly including commonly used line, bar, pie, and composite charts. We define chart parsing as image-to-HTML-table conversion task, as shown in Figure 6(a). For chemical formulas, we utilize SMILES format from PubChem as the data source and render them into images using RDKit, constructing 5M image-text pairs. For plane geometry images, we follow Slow Perception [39] for generation. Specifically, we use perception-ruler size as 4 to model each line segment. To increase the diversity of rendered data, we introduce geometric translation-invariant data augmentation, where the same geometric image is translated in the original image, corresponding to the same ground truth drawn at the centered position in the coordinate system. Based on this, we construct a total of 1M plane geometry parsing data, as illustrated in Figure 6(b).\n\n### 3.4.3. General vision data\n\nDeepEncoder can benefit from CLIP’s pretraining gains and has sufficient parameters to incorporate general visual knowledge. Therefore, we also prepare some corresponding data for DeepSeek-OCR. Following DeepSeek-VL2 [40], we generate relevant data for tasks such as caption, detection, and grounding. Note that DeepSeek-OCR is not a general VLM model, and this portion of data accounts for only 20% of the total data. We introduce such type of data mainly to preserve the general vision interface, so that researchers interested in our model and general vision task can conveniently advance their work in the future.\n\n### 3.4.4. Text-only data\n\nTo ensure the model’s language capabilities, we introduced 10% of in-house text-only pretrain data, with all data processed to a length of 8192 tokens, which is also the sequence length for DeepSeek-OCR. In summary, when training DeepSeek-OCR, OCR data accounts for 70%, general vision data accounts for 20%, and text-only data accounts for 10%.\n\n### 3.5. Training Pipelines\n\nOur training pipeline is very simple and consists mainly of two stages: a).Training DeepEncoder independently; b).Training the DeepSeek-OCR. Note that the Gundam-master mode is obtained by continuing training on a pre-trained DeepSeek-OCR model with 6M sampled data. Since the training protocol is identical to other modes, we omit the detailed description hereafter.",
+  "entities": [
+    "OneChart",
+    "HTML table format",
+    "Slow Perception",
+    "PubChem",
+    "SMILES",
+    "RDKit",
+    "DeepEncoder",
+    "CLIP",
+    "DeepSeek-OCR",
+    "DeepSeek-VL2",
+    "Gundam-master mode",
+    "10M images",
+    "5M image-text pairs",
+    "1M plane geometry parsing data",
+    "6M sampled data"
+  ],
+  "summary": "This page details the data generation and training pipeline for DeepSeek-OCR. It describes the formatting for chart data (HTML tables) and plane geometry (dictionary format using Slow Perception), totaling millions of generated samples. The dataset composition is defined as 70% OCR data, 20% general vision data (leveraging CLIP and DeepSeek-VL2), and 10% text-only data. Finally, the training pipeline is outlined in two stages: independent DeepEncoder training followed by DeepSeek-OCR training, including a specialized 'Gundam-master mode'."
+}

@@ -1,0 +1,14 @@
+{
+  "page_number": 17,
+  "markdown": "![Figure 11: Examples of OCR capabilities on multilingual documents. Top left: An Arabic document with text and a table. Top right: A document in Sinhala script showing grounding and markdown conversion.]\n\n**Figure 11 |** To endow the capability of processing widely crawled PDFs (multilingual data), we train our model with OCR capabilities for nearly 100 languages. Minority language documents can also support both layout and non-layout outputs through different prompts.\n\n### 4.3.3. General vision understanding\n\nWe also provide DeepSeek-OCR with a certain degree of general image understanding capabilities. The related visualization results are shown in Figure 12.",
+  "entities": [
+    "Figure 11",
+    "PDFs",
+    "OCR",
+    "DeepSeek-OCR",
+    "Figure 12",
+    "ANGEM",
+    "CNAC"
+  ],
+  "summary": "This page details the multilingual OCR capabilities of the model, highlighting support for nearly 100 languages including minority languages, as illustrated in Figure 11 with Arabic and Sinhala examples. It also introduces section 4.3.3, mentioning the model's general vision understanding capabilities."
+}

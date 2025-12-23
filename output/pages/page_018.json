@@ -1,0 +1,17 @@
+{
+  "page_number": 18,
+  "markdown": "![Figure 12: A composite image showing six examples of DeepSeek-OCR capabilities including locating math problems, describing a bean paste jar, locating a cartoon teacher, object detection in a park, describing a fire hydrant in Chinese, and OCR grounding on a mug with Chinese poetry.]\n\n**Figure 12 |** We retain DeepSeek-OCR's capabilities in general visual understanding, mainly including image description, object detection, grounding, etc. Meanwhile, due to the inclusion of text-only data, DeepSeek-OCR's language capabilities are also retained. Note that since we do not include SFT (Supervised Fine-Tuning) stage, the model is not a chatbot, and some capabilities need completion prompts to be activated.\n\n# 5. Discussion\n\nOur work represents an initial exploration into the boundaries of vision-text compression, investigating how many vision tokens are required to decode *N* text tokens. The preliminary results are encouraging: DeepSeek-OCR achieves near-lossless OCR compression at approximately 10× ratios, while 20× compression still retains 60% accuracy. These findings suggest promising directions for future applications, such as implementing optical processing for dialogue histories beyond *k* rounds in multi-turn conversations to achieve 10× compression efficiency.\n\n18",
+  "entities": [
+    "DeepSeek-OCR",
+    "Figure 12",
+    "SFT",
+    "Supervised Fine-Tuning",
+    "vision-text compression",
+    "optical processing",
+    "dialogue histories",
+    "10× ratios",
+    "20× compression",
+    "60% accuracy"
+  ],
+  "summary": "Page 18 presents Figure 12, which illustrates DeepSeek-OCR's retained capabilities in visual understanding (such as object detection, grounding, and description) and language processing, noting the absence of a Supervised Fine-Tuning (SFT) stage. The 'Discussion' section outlines the study's exploration of vision-text compression boundaries, reporting that the model achieves near-lossless OCR compression at 10× ratios and retains 60% accuracy at 20× compression. The authors suggest future applications in optical processing for multi-turn dialogue histories to improve efficiency."
+}

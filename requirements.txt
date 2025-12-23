@@ -1,0 +1,6 @@
+google-generativeai
+pillow
+pdf2image
+python-dotenv
+supermemory
+
