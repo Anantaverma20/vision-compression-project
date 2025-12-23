@@ -2,11 +2,32 @@
 
 FastAPI backend for PDF document ingestion and question answering using Gemini and Supermemory.
 
+## System Flow
+
+```mermaid
+flowchart LR
+    A[PDF Upload] --> B[Extract Pages<br/>PDF → Images]
+    B --> C[Gemini Vision<br/>Extract Markdown]
+    C --> D{Storage Mode}
+    D -->|Text Mode| E[Store Full Markdown<br/>in Supermemory]
+    D -->|Optical-Lite| F[Store Minimal Metadata<br/>+ Image References]
+    E --> G[Query Supermemory]
+    F --> G
+    G --> H[Retrieve Pages]
+    H --> I{Answer Mode}
+    I -->|Text Mode| J[Use Markdown<br/>as Context]
+    I -->|Optical-Lite| K[Use Images<br/>as Context]
+    J --> L[Gemini Generates<br/>Answer with Citations]
+    K --> L
+    L --> M[Return Answer]
+```
+
 ## Features
 
 - **PDF Ingestion**: Extract and compress PDF pages using Gemini vision model
 - **Supermemory Integration**: Ingest compressed pages into Supermemory for semantic search
 - **Question Answering**: Retrieve relevant pages and generate answers with citations using Gemini
+- **Optical-Lite Mode**: Storage-minimized mode using images directly as context
 
 ## Environment Variables
 
